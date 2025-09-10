@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulação Logística Integrada</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+
+    <style>
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .input-focus:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-gray-100 min-h-screen p-4">
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <div class="text-center mb-12" data-aos="fade-down">
+            <h1 class="text-4xl font-extrabold text-gray-800 mb-2">Simulação Logística Integrada</h1>
+            <p class="text-lg text-gray-600">Otimização de recursos e cálculo de balanceamento</p>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 card-hover" data-aos="fade-up">
+            <h2 class="text-xl font-bold mb-4 text-gray-700 flex items-center gap-2">
+                <i data-feather="dollar-sign" class="text-blue-500"></i> Cálculo de Pickings & Eficiência
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">Picking SIOC</h3>
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-600">Capacidade SIOC (unidades)</label>
+                        <input type="number" id="capSIOC" class="w-full p-2 border rounded-lg" placeholder="Ex: 10000" />
+                        <label class="block text-sm font-medium text-gray-600">Líquida Produzida/h</label>
+                        <input type="number" id="liquidaSIOC" class="w-full p-2 border rounded-lg" placeholder="Ex: 40" />
+                        <div class="p-4 bg-blue-50 rounded-lg">
+                            <p class="text-sm text-blue-700 font-medium">Pickings Necessários:</p>
+                            <p id="resultadoSIOC" class="text-xl font-bold text-blue-900">-</p>
+                            <p class="text-sm text-gray-600">Eficiência: <span id="efSIOC">-</span>%</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-gray-700 mb-2">Picking 2.0</h3>
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium text-gray-600">Capacidade 2.0 (unidades)</label>
+                        <input type="number" id="cap20" class="w-full p-2 border rounded-lg" placeholder="Ex: 15000" />
+                        <label class="block text-sm font-medium text-gray-600">Líquida Produzida/h</label>
+                        <input type="number" id="liquida20" class="w-full p-2 border rounded-lg" placeholder="Ex: 50" />
+                        <div class="p-4 bg-green-50 rounded-lg">
+                            <p class="text-sm text-green-700 font-medium">Pickings Necessários:</p>
+                            <p id="resultado20" class="text-xl font-bold text-green-900">-</p>
+                            <p class="text-sm text-gray-600">Eficiência: <span id="ef20">-</span>%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="calcularPickings()" class="mt-6 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+                Calcular
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8 card-hover" data-aos="fade-up">
+            <h2 class="text-xl font-bold mb-4 text-gray-700 flex items-center gap-2">
+                <i data-feather="tool" class="text-red-500"></i> Balanceamento Picking x Packing
+            </h2>
+            <p class="text-sm text-gray-600 mb-4">Calcule a quantidade de bancadas de packing necessárias para um picking com 75 unidades/h por rep.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <label class="block">
+                    <span class="text-sm font-medium">Operadores Picking</span>
+                    <input id="repsPickingBalanco" type="number" min="1" value="3" class="mt-1 block w-full p-2 border rounded" />
+                </label>
+                <label class="block">
+                    <span class="text-sm font-medium">Produtividade Packing (unid/h)</span>
+                    <input id="taxaPackingBalanco" type="number" min="1" value="50" class="mt-1 block w-full p-2 border rounded" />
+                </label>
+                <div class="flex items-end">
+                    <button id="calcularBalanco" class="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">Calcular</button>
+                </div>
+            </div>
+            <div id="resultadoBalanco" class="mt-4 p-4 bg-red-50 rounded border border-red-100 hidden">
+                <h3 class="font-semibold text-lg mb-2 text-red-800">Resultado</h3>
+                <div class="space-y-2">
+                    <div>
+                        📦 <strong>Bancadas de Packing Necessárias:</strong>
+                        <span id="bancadasNecessarias" class="font-bold text-xl text-red-800">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg p-6 mt-8 card-hover" data-aos="fade-up">
+            <h2 class="text-xl font-bold mb-4 text-gray-700 flex items-center gap-2">
+                <i data-feather="package" class="text-purple-500"></i> Calculadora de Indução de Gaiolas
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <label class="block">
+                    <span class="text-sm font-medium">Reps atuando (paralelo)</span>
+                    <input id="reps" type="number" min="1" value="4" class="mt-1 block w-full p-2 border rounded" />
+                </label>
+                <label class="block">
+                    <span class="text-sm font-medium">Tempo por gaiola (min)</span>
+                    <input id="tempoPorGaiola" type="number" min="0.1" step="0.1" value="7" class="mt-1 block w-full p-2 border rounded" />
+                </label>
+                <label class="block">
+                    <span class="text-sm font-medium">Quantidade de gaiolas</span>
+                    <input id="qtdGaiolas" type="number" min="1" value="11" class="mt-1 block w-full p-2 border rounded" />
+                </label>
+            </div>
+            <div class="mt-4 flex gap-2">
+                <button id="calcularInducao" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Calcular</button>
+                <button id="limparInducao" class="bg-gray-200 text-gray-800 px-4 py-2 rounded hover:bg-gray-300">Limpar</button>
+            </div>
+            <div id="resultadoInducao" class="mt-6 bg-gray-50 p-4 rounded border hidden">
+                <h2 class="font-semibold text-lg mb-2">Resultado da Indução</h2>
+                <div class="space-y-2">
+                    <div>🕒 <strong>Tempo total:</strong> <span id="tempoTotalMinInducao">0</span> minutos (<span id="tempoTotalHHMMInducao">00:00</span>)</div>
+                    <div>🔁 <strong>Ciclos necessários:</strong> <span id="ciclosInducao">0</span></div>
+                    <div>⚙️ <strong>Gaiolas por ciclo (máx):</strong> <span id="gaiolasPorCicloInducao">0</span></div>
+                    <div>🔢 <strong>Último ciclo finaliza:</strong> <span id="ultimocicloInfoInducao">-</span></div>
+                </div>
+                <div class="mt-4">
+                    <h3 class="font-medium mb-2">Detalhamento por ciclo</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-left">
+                            <thead>
+                                <tr class="text-sm text-gray-600">
+                                    <th class="px-2 py-1">Ciclo</th>
+                                    <th class="px-2 py-1">Gaiolas processadas</th>
+                                    <th class="px-2 py-1">Tempo acumulado (min)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaCiclosInducao" class="text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <p class="mt-4 text-sm text-gray-600">Ex.: com 4 reps, 7 min por gaiola e 11 gaiolas → tempo total = 21 min.</p>
+        </div>
+    </div>
+
+    <script>
+        // Funções de inicialização e animações
+        document.addEventListener('DOMContentLoaded', function() {
+            AOS.init({
+                duration: 800,
+                easing: 'ease-in-out',
+                once: true
+            });
+            feather.replace();
+        });
+
+        // Funções do novo cálculo (Pickings e Eficiência)
+        function calcularPickings() {
+            const horas = 7.2;
+            const capSIOC = Number(document.getElementById("capSIOC").value);
+            const cap20 = Number(document.getElementById("cap20").value);
+            const liquidaSIOC = Number(document.getElementById("liquidaSIOC").value);
+            const liquida20 = Number(document.getElementById("liquida20").value);
+
+            if (!capSIOC || !cap20 || !liquidaSIOC || !liquida20 || liquidaSIOC <= 0 || liquida20 <= 0) {
+                alert("Por favor, preencha todos os campos corretamente.");
+                return;
+            }
+
+            // Cálculo dos pickings necessários
+            const repsSIOC = capSIOC / (horas * liquidaSIOC);
+            const reps20 = cap20 / (horas * liquida20);
+
+            // Eficiência: (Capacidade Ideal / Capacidade Alocada) * 100
+            const eficienciaSIOC = (capSIOC / (Math.ceil(repsSIOC) * horas * liquidaSIOC)) * 100;
+            const eficiencia20 = (cap20 / (Math.ceil(reps20) * horas * liquida20)) * 100;
+
+            // Atualiza resultados
+            document.getElementById("resultadoSIOC").innerText = Math.ceil(repsSIOC) + " pickings";
+            document.getElementById("resultado20").innerText = Math.ceil(reps20) + " pickings";
+            document.getElementById("efSIOC").innerText = eficienciaSIOC.toFixed(1);
+            document.getElementById("ef20").innerText = eficiencia20.toFixed(1);
+        }
+
+        // Funções da Calculadora de Indução
+        function minutosParaHHMM(mins) {
+            const total = Math.max(0, Math.round(mins));
+            const h = Math.floor(total / 60);
+            const m = total % 60;
+            return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+        }
+
+        document.getElementById('calcularInducao').addEventListener('click', () => {
+            const reps = Math.max(1, Number(document.getElementById('reps').value) || 0);
+            const tempoPorGaiola = Math.max(0.01, Number(document.getElementById('tempoPorGaiola').value) || 0);
+            const qtdGaiolas = Math.max(1, Math.floor(Number(document.getElementById('qtdGaiolas').value) || 0));
+            const gaiolasPorCiclo = reps;
+            const ciclos = Math.ceil(qtdGaiolas / gaiolasPorCiclo);
+            const tempoTotalMin = ciclos * tempoPorGaiola;
+            const resto = qtdGaiolas % gaiolasPorCiclo;
+            const gaiolasUltimoCiclo = resto === 0 ? gaiolasPorCiclo : resto;
+            
+            document.getElementById('tempoTotalMinInducao').innerText = tempoTotalMin;
+            document.getElementById('tempoTotalHHMMInducao').innerText = minutosParaHHMM(tempoTotalMin);
+            document.getElementById('ciclosInducao').innerText = ciclos;
+            document.getElementById('gaiolasPorCicloInducao').innerText = gaiolasPorCiclo;
+            document.getElementById('ultimocicloInfoInducao').innerText = `Ciclo ${ciclos}: ${gaiolasUltimoCiclo} gaiola(s)`;
+            
+            const tbody = document.getElementById('tabelaCiclosInducao');
+            tbody.innerHTML = '';
+            let acumulado = 0;
+            for (let i = 1; i <= ciclos; i++) {
+                const processadas = (i === ciclos) ? gaiolasUltimoCiclo : gaiolasPorCiclo;
+                acumulado += tempoPorGaiola;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-2 py-1 border-t">${i}</td>
+                    <td class="px-2 py-1 border-t">${processadas}</td>
+                    <td class="px-2 py-1 border-t">${acumulado.toFixed(2)} min</td>
+                `;
+                tbody.appendChild(tr);
+            }
+            document.getElementById('resultadoInducao').classList.remove('hidden');
+        });
+
+        document.getElementById('limparInducao').addEventListener('click', () => {
+            document.getElementById('reps').value = 4;
+            document.getElementById('tempoPorGaiola').value = 7;
+            document.getElementById('qtdGaiolas').value = 11;
+            document.getElementById('resultadoInducao').classList.add('hidden');
+        });
+
+        // Função para o cálculo de balanceamento
+        document.getElementById('calcularBalanco').addEventListener('click', () => {
+            const repsPickingBalanco = Number(document.getElementById('repsPickingBalanco').value);
+            const produtividadePicking = 75; // Valor fixo fornecido
+            const produtividadePacking = Number(document.getElementById('taxaPackingBalanco').value);
+            
+            if (produtividadePacking <= 0) {
+                alert("A produtividade do Packing deve ser maior que zero.");
+                return;
+            }
+            
+            const totalPicking = repsPickingBalanco * produtividadePicking;
+            const bancadasNecessarias = Math.ceil(totalPicking / produtividadePacking);
+            
+            document.getElementById('bancadasNecessarias').innerText = bancadasNecessarias;
+            document.getElementById('resultadoBalanco').classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
